@@ -117,7 +117,20 @@ function insert(record) {
   tableRow.addEventListener("click", () => document.getElementById("modal").innerHTML = record.notes)
   columns.forEach((col) => {
     const tdEl = document.createElement("td");
-    tdEl.innerHTML = record[col.name];
+
+    if(col.name === "actions") {
+        const button = document.createElement("button")
+        button.innerHTML = "Delete"
+        button.className = "btn btn-danger"
+        button.addEventListener("click", (e) => {
+            e.stopPropagation()
+            deleteRecord(row.id)
+        })
+        tdEl.appendChild(button)
+    } else {
+        tdEl.innerHTML = record[col.name];
+    }
+
     tableRow.appendChild(tdEl);
   });
   tbody.appendChild(tableRow);
