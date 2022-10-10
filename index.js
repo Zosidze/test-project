@@ -29,19 +29,18 @@ const columns = [
   },
   {
     title: "",
-    name: "actions"
-  }
+    name: "actions",
+  },
 ];
 
 const localStorage = window.localStorage;
-const data = JSON.parse(localStorage.getItem(DATA_KEY)) || [];
+let data = JSON.parse(localStorage.getItem(DATA_KEY)) || [];
 
 (() => {
   init();
 })();
 
 function init() {
-
   const theadEl = document.createElement("thead");
   const trEl = document.createElement("tr");
   const tbody = document.getElementById("tbody");
@@ -56,27 +55,21 @@ function init() {
 
   data.forEach((row) => {
     const tableRow = document.createElement("tr");
-    appendModal(tableRow)
-    tableRow.addEventListener("click", (e) => {
-        e.stopPropagation()
-        document.getElementById("modal").innerHTML = row.notes
-    })
-    tableRow.id = "table-row-" + row.id
+    tableRow.id = "table-row-" + row.id;
     columns.forEach((col) => {
-        const tdEl = document.createElement("td");
-        if(col.name === "actions") {
-            const button = document.createElement("button")
-            button.innerHTML = "Delete"
-            button.className = "btn btn-danger"
-            button.addEventListener("click", (e) => {
-                e.stopPropagation()
-                deleteRecord(row.id)
-            })
-            tdEl.appendChild(button)
-        } else {
-            tdEl.innerHTML = row[col.name];
-        }
-        tableRow.appendChild(tdEl);
+      const tdEl = document.createElement("td");
+      if (col.name === "actions") {
+        const button = document.createElement("button");
+        button.innerHTML = "Delete";
+        button.className = "btn btn-danger";
+        button.addEventListener("click", () => deleteRecord(row.id));
+        tdEl.appendChild(button);
+      } else {
+        tdEl.innerHTML = row[col.name];
+        tdEl.addEventListener("click", () => document.getElementById("modal").innerHTML = row.notes);
+        appendModal(tdEl);
+      }
+      tableRow.appendChild(tdEl);
     });
     tbody.appendChild(tableRow);
   });
@@ -88,13 +81,16 @@ function init() {
 
 function onSubmit(e) {
   e.preventDefault();
+  const messageEl = document.getElementById("message");
+  const formEl = document.getElementById("form");
 
   if (!validateForm(e)) {
     return;
   }
 
   const record = {};
-  const maxId = Math.max(...data.map((r) => r.id)) ?? 0;
+
+  const maxId = data.map((r) => r.id)[data.length - 1] || 0;
 
   for (let i = 0; i < 6; i++) {
     const name = e.target[i].name;
@@ -105,35 +101,45 @@ function onSubmit(e) {
   record["id"] = maxId + 1;
 
   data.push(record);
+  formEl.reset();
 
   localStorage.setItem(DATA_KEY, JSON.stringify(data));
   insert(record);
+  messageEl.hidden = true;
 }
 
 function insert(record) {
   const tbody = document.getElementById("tbody");
   const tableRow = document.createElement("tr");
-  appendModal(tableRow)
-  tableRow.addEventListener("click", () => document.getElementById("modal").innerHTML = record.notes)
+  tableRow.id = "table-row-" + record.id;
+
   columns.forEach((col) => {
     const tdEl = document.createElement("td");
 
-    if(col.name === "actions") {
-        const button = document.createElement("button")
-        button.innerHTML = "Delete"
-        button.className = "btn btn-danger"
-        button.addEventListener("click", (e) => {
-            e.stopPropagation()
-            deleteRecord(row.id)
-        })
-        tdEl.appendChild(button)
+    if (col.name === "actions") {
+      const button = document.createElement("button");
+      button.innerHTML = "Delete";
+      button.className = "btn btn-danger button-custom";
+      button.addEventListener("click", () => deleteRecord(record.id));
+      tdEl.appendChild(button);
     } else {
-        tdEl.innerHTML = record[col.name];
+      tdEl.innerHTML = record[col.name];
+      tdEl.addEventListener(
+        "click", (e) => document.getElementById("modal").innerHTML = record.notes
+      );
+  appendModal(tdEl);
+
     }
 
     tableRow.appendChild(tdEl);
   });
   tbody.appendChild(tableRow);
+}
+
+function containsSpecialCharsOrNumber(str) {
+  const specialChars = /[`!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/;
+  const numbers = /\d/;
+  return specialChars.test(str) || numbers.test(str);
 }
 
 function validateForm(form) {
@@ -144,15 +150,21 @@ function validateForm(form) {
     const name = form.target[i].name;
     const value = form.target[i].value;
 
-    if (name === "firstname" && (!value || value.length < 3)) {
+    if (
+      name === "firstname" &&
+      (!value || value.length < 3 || containsSpecialCharsOrNumber(value))
+    ) {
       messages.push(
-        "First name is required and must be at least 3 characters long"
+        "First name is required and must be at least 3 characters long and may only contain letters"
       );
     }
 
-    if (name === "lastname" && (!value || value.length < 4)) {
+    if (
+      name === "lastname" &&
+      (!value || value.length < 4 || containsSpecialCharsOrNumber(value))
+    ) {
       messages.push(
-        "Last name is required and must be at least 4 characters long"
+        "Last name is required and must be at least 4 characters long and may only contain letters"
       );
     }
 
@@ -187,16 +199,16 @@ function validateForm(form) {
 }
 
 function appendModal(element) {
-    element.setAttribute("data-bs-toggle", "modal")
-    element.setAttribute("data-bs-target", "#exampleModal")
+  element.setAttribute("data-bs-toggle", "modal");
+  element.setAttribute("data-bs-target", "#exampleModal");
 }
 
 function deleteRecord(id) {
-    document.getElementById(`table-row-${id}`).remove();
-    const newData = data.filter(r => r.id !== id)
-    localStorage.setItem(DATA_KEY, JSON.stringify(newData))
+  document.getElementById(`table-row-${id}`).remove();
+  const newData = data.filter((r) => r.id !== id);
+  data = newData;
+  localStorage.setItem(DATA_KEY, JSON.stringify(newData));
 }
 
-
-
 form.addEventListener("submit", onSubmit);
+
